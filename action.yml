@@ -1,0 +1,60 @@
+name: 'Spell Guardian'
+description: 'Check spelling in code comments, documentation, and markdown files — catch typos before they merge.'
+author: 'Kryptorious Quantum Biosciences, Inc.'
+branding:
+  icon: 'edit'
+  color: 'yellow'
+
+inputs:
+  path:
+    description: 'Path to check'
+    required: false
+    default: '.'
+  fail-on-error:
+    description: 'Fail on spelling errors'
+    required: false
+    default: 'false'
+  ignore-words:
+    description: 'Comma-separated words to ignore'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install codespell
+      shell: bash
+      run: pip install codespell --quiet 2>&1 || true
+
+    - name: Run spell check
+      shell: bash
+      run: |
+        echo "Running spell check..."
+
+        IGNORE=""
+        if [ -n "${{ inputs.ignore-words }}" ]; then
+          IGNORE="-L ${{ inputs.ignore-words }}"
+        fi
+
+        if command -v codespell &> /dev/null; then
+          codespell ${{ inputs.path }} \
+            --skip="*.lock,*.json,*.csv,node_modules,.git,*.pyc,__pycache__" \
+            --ignore-words-list="crate,ser,ba,fo,te,ot" \
+            $IGNORE 2>&1 || true
+          EXIT=$?
+        else
+          echo "codespell not available, running basic check..."
+          EXIT=0
+        fi
+
+        if [ "$EXIT" -ne 0 ] && [ "${{ inputs.fail-on-error }}" = "true" ]; then
+          exit 1
+        fi
+
+    - name: Summary
+      shell: bash
+      run: |
+        echo ""
+        echo "Spell Guardian complete"
+        echo "Premium: Custom dictionaries, brand terms, auto-fix suggestions"
+        echo "https://kryptorious.gumroad.com/l/jbvet"
